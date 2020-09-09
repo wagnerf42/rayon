@@ -38,7 +38,7 @@ mod log;
 #[macro_use]
 mod private;
 #[macro_use]
-mod logs;
+mod tasks_logs;
 
 mod job;
 mod join;
@@ -55,14 +55,14 @@ mod compile_fail;
 mod test;
 
 pub use self::join::{join, join_context};
-use self::logs::Storage;
-pub use self::logs::{
-    custom_subgraph, subgraph, Logger, RawEvent, RawLogs, SubGraphId, TaskId, TimeStamp,
-};
 pub use self::registry::ThreadBuilder;
 pub use self::scope::{scope, Scope};
 pub use self::scope::{scope_fifo, ScopeFifo};
 pub use self::spawn::{spawn, spawn_fifo};
+use self::tasks_logs::Storage;
+pub use self::tasks_logs::{
+    custom_subgraph, subgraph, Logger, RawEvent, RawLogs, SubGraphId, TaskId, TimeStamp,
+};
 pub use self::thread_pool::current_thread_has_pending_tasks;
 pub use self::thread_pool::current_thread_index;
 pub use self::thread_pool::ThreadPool;

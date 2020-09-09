@@ -4,7 +4,7 @@ use crate::registry::{self, WorkerThread};
 use crate::unwind;
 use std::any::Any;
 
-use crate::logs::{log, next_task_id, now};
+use crate::tasks_logs::{log, next_task_id, now};
 use crate::FnContext;
 use crate::RawEvent;
 

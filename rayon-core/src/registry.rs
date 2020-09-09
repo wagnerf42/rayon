@@ -2,8 +2,8 @@ use crate::job::{JobFifo, JobRef, StackJob};
 use crate::latch::{AsCoreLatch, CoreLatch, CountLatch, Latch, LockLatch, SpinLatch};
 use crate::log::Event::*;
 use crate::log::Logger;
-use crate::logs::{RawEvent, Storage};
 use crate::sleep::Sleep;
+use crate::tasks_logs::{RawEvent, Storage};
 use crate::unwind;
 use crate::util::leak;
 use crate::{
@@ -825,7 +825,7 @@ unsafe fn main_loop(worker: Worker<JobRef>, registry: Arc<Registry>, index: usiz
     registry.thread_infos[index].primed.set();
     // tell him where we record logs
     if let Some(tasks_logger) = &registry.tasks_logger {
-        crate::logs::recorder::THREAD_LOGS
+        crate::tasks_logs::THREAD_LOGS
             .with(|logs| tasks_logger.lock().unwrap().push_back(logs.clone()));
     }
 

@@ -59,7 +59,7 @@ impl<T: 'static> Default for Storage<T> {
 
 impl<T: 'static> Storage<T> {
     /// Create a new storage space.
-    pub(crate) fn new() -> Self {
+    pub(super) fn new() -> Self {
         let first_block = Block::new();
         let list = AtomicLinkedList::new();
         list.push_front(first_block);
@@ -67,6 +67,8 @@ impl<T: 'static> Storage<T> {
     }
 
     /// Add given element to storage space.
+    // this needs to be public to crate level since
+    // it use used directly by the logs! macro.
     pub(crate) fn push(&self, element: T) {
         let space_needed = self.data.front().unwrap().is_full();
         if space_needed {

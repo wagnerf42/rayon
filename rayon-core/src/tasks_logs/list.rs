@@ -10,17 +10,17 @@ struct Node<T> {
 }
 
 #[derive(Debug)]
-pub(crate) struct AtomicLinkedList<T> {
+pub(super) struct AtomicLinkedList<T> {
     head: AtomicPtr<Node<T>>,
 }
 
 impl<T: 'static> AtomicLinkedList<T> {
-    pub(crate) const fn new() -> Self {
+    pub(super) const fn new() -> Self {
         AtomicLinkedList {
             head: AtomicPtr::new(null_mut()),
         }
     }
-    pub(crate) fn reset(&self) {
+    pub(super) fn reset(&self) {
         let mut node_pointer = self.head.swap(null_mut(), Ordering::SeqCst);
         while let Some(node) = unsafe { node_pointer.as_ref() } {
             let old_node_pointer = node_pointer;
@@ -28,27 +28,27 @@ impl<T: 'static> AtomicLinkedList<T> {
             unsafe { old_node_pointer.drop_in_place() }
         }
     }
-    pub(crate) fn push_front(&self, elt: T) {
+    pub(super) fn push_front(&self, elt: T) {
         let new_node = Box::new(Node {
             element: elt,
             next: AtomicPtr::new(self.head.load(Ordering::SeqCst)),
         });
         self.head.store(Box::into_raw(new_node), Ordering::SeqCst)
     }
-    pub(crate) fn front(&self) -> Option<&T> {
+    pub(super) fn front(&self) -> Option<&T> {
         unsafe { self.head.load(Ordering::Relaxed).as_ref() }.map(|n| &n.element)
     }
-    pub(crate) fn front_mut(&self) -> Option<&mut T> {
+    pub(super) fn front_mut(&self) -> Option<&mut T> {
         unsafe { self.head.load(Ordering::Relaxed).as_mut() }.map(|n| &mut n.element)
     }
-    pub(crate) fn iter(&self) -> AtomicLinkedListIterator<T> {
+    pub(super) fn iter(&self) -> AtomicLinkedListIterator<T> {
         AtomicLinkedListIterator {
             current_node: self.head.load(Ordering::Relaxed),
         }
     }
 }
 
-pub(crate) struct AtomicLinkedListIterator<T> {
+pub(super) struct AtomicLinkedListIterator<T> {
     current_node: *mut Node<T>,
 }
 

@@ -12,12 +12,53 @@ use std::io;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-thread_local! {
-    /// each thread has a storage space for logs
-    //TODO: change pub crate
-    pub(crate) static THREAD_LOGS: Arc<Storage<RawEvent<&'static str>>> =  {
-        Arc::new(Storage::new())
-    };
+/// This is the main structure for logging in rayon.
+#[derive(Debug)]
+pub struct Logger {
+    /// All logs are registered here.
+    logs: Arc<Mutex<LinkedList<Arc<Storage<RawEvent<&'static str>>>>>>,
+}
+
+impl Logger {
+    /// Create a new global logger.
+    /// The thread calling this method will get logged in addition
+    /// to all threads obtained from `pool_builder` method.
+    pub fn new() -> Self {
+        let logs = Arc::new(Mutex::new(LinkedList::new()));
+        {
+            logs.lock()
+                .unwrap()
+                .push_front(super::THREAD_LOGS.with(|l| {
+                    l.push(RawEvent::TaskStart(0, now()));
+                    l.clone()
+                }));
+        }
+        Logger { logs }
+    }
+    /// Create a `ThreadPoolBuilder` whose pool will be logged.
+    pub fn pool_builder(&self) -> crate::ThreadPoolBuilder {
+        let mut builder: crate::ThreadPoolBuilder = Default::default();
+        builder.tasks_logger = Some(self.logs.clone());
+        builder
+    }
+    /// Extract recorded logs (removing them from records).
+    pub fn extract_logs(&self) -> RawLogs {
+        RawLogs::new(self)
+    }
+    /// Erase all logs and restart logging.
+    pub fn reset(&self) {
+        self.logs.lock().unwrap().iter().for_each(|log| log.reset());
+        log(RawEvent::TaskStart(next_task_id(), now()));
+    }
+
+    /// Save log file of currently recorded raw logs.
+    /// This will reset logs.
+    pub fn save_raw_logs<P: AsRef<Path>>(&mut self, path: P) -> Result<(), io::Error> {
+        let logs = RawLogs::new(self);
+        logs.save(path)?;
+        self.reset();
+        Ok(())
+    }
 }
 
 impl RawLogs {
@@ -142,53 +183,6 @@ impl RawEvent<TaskId> {
                 write_u64(*size as u64, destination)?;
             }
         }
-        Ok(())
-    }
-}
-
-/// This is the main structure for logging in rayon.
-#[derive(Debug)]
-pub struct Logger {
-    /// All logs are registered here.
-    logs: Arc<Mutex<LinkedList<Arc<Storage<RawEvent<&'static str>>>>>>,
-}
-
-impl Logger {
-    /// Create a new global logger.
-    /// The thread calling this method will get logged in addition
-    /// to all threads obtained from `pool_builder` method.
-    pub fn new() -> Self {
-        let logs = Arc::new(Mutex::new(LinkedList::new()));
-        {
-            logs.lock().unwrap().push_front(THREAD_LOGS.with(|l| {
-                l.push(RawEvent::TaskStart(0, now()));
-                l.clone()
-            }));
-        }
-        Logger { logs }
-    }
-    /// Create a `ThreadPoolBuilder` whose pool will be logged.
-    pub fn pool_builder(&self) -> crate::ThreadPoolBuilder {
-        let mut builder: crate::ThreadPoolBuilder = Default::default();
-        builder.tasks_logger = Some(self.logs.clone());
-        builder
-    }
-    /// Extract recorded logs (removing them from records).
-    pub fn extract_logs(&self) -> RawLogs {
-        RawLogs::new(self)
-    }
-    /// Erase all logs and restart logging.
-    pub fn reset(&self) {
-        self.logs.lock().unwrap().iter().for_each(|log| log.reset());
-        log(RawEvent::TaskStart(next_task_id(), now()));
-    }
-
-    /// Save log file of currently recorded raw logs.
-    /// This will reset logs.
-    pub fn save_raw_logs<P: AsRef<Path>>(&mut self, path: P) -> Result<(), io::Error> {
-        let logs = RawLogs::new(self);
-        logs.save(path)?;
-        self.reset();
         Ok(())
     }
 }
