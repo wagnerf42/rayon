@@ -67,7 +67,7 @@ impl<T: 'static> Storage<T> {
     }
 
     /// Add given element to storage space.
-    pub(super) fn push(&self, element: T) {
+    pub(crate) fn push(&self, element: T) {
         let space_needed = self.data.front().unwrap().is_full();
         if space_needed {
             self.data.push_front(Block::new());

@@ -37,6 +37,8 @@ use std::str::FromStr;
 mod log;
 #[macro_use]
 mod private;
+#[macro_use]
+mod logs;
 
 mod job;
 mod join;
@@ -51,8 +53,6 @@ mod util;
 
 mod compile_fail;
 mod test;
-
-mod logs;
 
 pub use self::join::{join, join_context};
 use self::logs::Storage;

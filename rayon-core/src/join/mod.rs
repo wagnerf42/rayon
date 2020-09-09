@@ -4,7 +4,9 @@ use crate::registry::{self, WorkerThread};
 use crate::unwind;
 use std::any::Any;
 
+use crate::logs::{log, next_task_id, now};
 use crate::FnContext;
+use crate::RawEvent;
 
 #[cfg(test)]
 mod test;
@@ -129,20 +131,39 @@ where
         move |migrated| f(FnContext::new(migrated))
     }
 
-    registry::in_worker(|worker_thread, injected| unsafe {
+    let id_c = next_task_id();
+    let id_a = next_task_id();
+    let id_b = next_task_id();
+    logs!(
+        RawEvent::Child(id_a),
+        RawEvent::Child(id_b),
+        RawEvent::TaskEnd(now())
+    );
+
+    let results = registry::in_worker(|worker_thread, injected| unsafe {
         // Create virtual wrapper for task b; this all has to be
         // done here so that the stack frame can keep it all live
         // long enough.
-        let job_b = StackJob::new(call_b(oper_b), SpinLatch::new(worker_thread));
+        let job_b = StackJob::new(
+            call_b(|arg| {
+                log(RawEvent::TaskStart(id_b, now()));
+                let result = oper_b(arg);
+                logs!(RawEvent::Child(id_c), RawEvent::TaskEnd(now()));
+                result
+            }),
+            SpinLatch::new(worker_thread),
+        );
         let job_b_ref = job_b.as_job_ref();
         worker_thread.push(job_b_ref);
 
         // Execute task a; hopefully b gets stolen in the meantime.
+        log(RawEvent::TaskStart(id_a, now()));
         let status_a = unwind::halt_unwinding(call_a(oper_a, injected));
         let result_a = match status_a {
             Ok(v) => v,
             Err(err) => join_recover_from_panic(worker_thread, &job_b.latch, err),
         };
+        logs!(RawEvent::Child(id_c), RawEvent::TaskEnd(now()));
 
         // Now that task A has finished, try to pop job B from the
         // local stack.  It may already have been popped by job A; it
@@ -170,7 +191,9 @@ where
         }
 
         (result_a, job_b.into_result())
-    })
+    });
+    log(RawEvent::TaskStart(id_c, now()));
+    results
 }
 
 /// If job A panics, we still cannot return until we are sure that job

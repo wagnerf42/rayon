@@ -160,9 +160,10 @@ impl Logger {
     pub fn new() -> Self {
         let logs = Arc::new(Mutex::new(LinkedList::new()));
         {
-            logs.lock()
-                .unwrap()
-                .push_front(THREAD_LOGS.with(|l| l.clone()));
+            logs.lock().unwrap().push_front(THREAD_LOGS.with(|l| {
+                l.push(RawEvent::TaskStart(0, now()));
+                l.clone()
+            }));
         }
         Logger { logs }
     }
