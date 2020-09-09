@@ -22,7 +22,7 @@
 #![doc(html_root_url = "https://docs.rs/rayon-core/1.8")]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
-#![deny(unreachable_pub)]
+// #![deny(unreachable_pub)] // TODO: put me back
 #![warn(rust_2018_idioms)]
 
 use std::any::Any;
@@ -52,7 +52,12 @@ mod util;
 mod compile_fail;
 mod test;
 
+mod logs;
+
 pub use self::join::{join, join_context};
+pub use self::logs::{
+    custom_subgraph, subgraph, Logger, RawEvent, RawLogs, SubGraphId, TaskId, TimeStamp,
+};
 pub use self::registry::ThreadBuilder;
 pub use self::scope::{scope, Scope};
 pub use self::scope::{scope_fifo, ScopeFifo};
