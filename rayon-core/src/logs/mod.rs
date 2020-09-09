@@ -197,9 +197,10 @@ fn next_task_id() -> TaskId {
 // }
 //
 mod list;
-mod recorder;
+pub(crate) mod recorder; // TODO: change pub
 pub use recorder::Logger;
 // pub(crate) mod scope;
 mod storage;
+pub(crate) use storage::Storage; // TODO: how to solve that ?
 mod subgraphs;
 pub use subgraphs::{custom_subgraph, subgraph};

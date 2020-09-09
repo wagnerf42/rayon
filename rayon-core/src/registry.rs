@@ -2,6 +2,7 @@ use crate::job::{JobFifo, JobRef, StackJob};
 use crate::latch::{AsCoreLatch, CoreLatch, CountLatch, Latch, LockLatch, SpinLatch};
 use crate::log::Event::*;
 use crate::log::Logger;
+use crate::logs::{RawEvent, Storage};
 use crate::sleep::Sleep;
 use crate::unwind;
 use crate::util::leak;
@@ -154,6 +155,15 @@ pub(super) struct Registry {
     //   These are always owned by some other job (e.g., one injected by `ThreadPool::install()`)
     //   and that job will keep the pool alive.
     terminate_count: AtomicUsize,
+
+    /// if tasks are logged and where
+    tasks_logger: Option<
+        std::sync::Arc<
+            std::sync::Mutex<
+                std::collections::LinkedList<std::sync::Arc<Storage<RawEvent<&'static str>>>>,
+            >,
+        >,
+    >,
 }
 
 /// ////////////////////////////////////////////////////////////////////////
@@ -244,6 +254,7 @@ impl Registry {
             panic_handler: builder.take_panic_handler(),
             start_handler: builder.take_start_handler(),
             exit_handler: builder.take_exit_handler(),
+            tasks_logger: builder.tasks_logger.clone(),
         });
 
         // If we return early or panic, make sure to terminate existing threads.
@@ -812,6 +823,11 @@ unsafe fn main_loop(worker: Worker<JobRef>, registry: Arc<Registry>, index: usiz
 
     // let registry know we are ready to do work
     registry.thread_infos[index].primed.set();
+    // tell him where we record logs
+    if let Some(tasks_logger) = &registry.tasks_logger {
+        crate::logs::recorder::THREAD_LOGS
+            .with(|logs| tasks_logger.lock().unwrap().push_back(logs.clone()));
+    }
 
     // Worker threads should not panic. If they do, just abort, as the
     // internal state of the threadpool is corrupted. Note that if

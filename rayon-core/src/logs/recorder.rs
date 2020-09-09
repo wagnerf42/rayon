@@ -14,7 +14,8 @@ use std::sync::{Arc, Mutex};
 
 thread_local! {
     /// each thread has a storage space for logs
-    pub(super) static THREAD_LOGS: Arc<Storage<RawEvent<&'static str>>> =  {
+    //TODO: change pub crate
+    pub(crate) static THREAD_LOGS: Arc<Storage<RawEvent<&'static str>>> =  {
         Arc::new(Storage::new())
     };
 }
@@ -80,7 +81,7 @@ impl RawLogs {
 // little endian write
 fn write_u64<W: std::io::Write>(integer: u64, destination: &mut W) -> std::io::Result<()> {
     let mut remaining = integer;
-    for _ in 0..4 {
+    for _ in 0..8 {
         let low_bits = (remaining & 255) as u8;
         remaining = remaining >> 8;
         destination.write(&[low_bits])?;
@@ -149,22 +150,27 @@ impl RawEvent<TaskId> {
 #[derive(Debug)]
 pub struct Logger {
     /// All logs are registered here.
-    logs: Mutex<LinkedList<Arc<Storage<RawEvent<&'static str>>>>>,
+    logs: Arc<Mutex<LinkedList<Arc<Storage<RawEvent<&'static str>>>>>>,
 }
 
 impl Logger {
     /// Create a new global logger.
-    /// You need to create it BEFORE any parallel operation.
     /// The thread calling this method will get logged in addition
-    /// to all threads used in rayon.
+    /// to all threads obtained from `pool_builder` method.
     pub fn new() -> Self {
-        let logs = Mutex::new(LinkedList::new());
+        let logs = Arc::new(Mutex::new(LinkedList::new()));
         {
             logs.lock()
                 .unwrap()
                 .push_front(THREAD_LOGS.with(|l| l.clone()));
         }
         Logger { logs }
+    }
+    /// Create a `ThreadPoolBuilder` whose pool will be logged.
+    pub fn pool_builder(&self) -> crate::ThreadPoolBuilder {
+        let mut builder: crate::ThreadPoolBuilder = Default::default();
+        builder.tasks_logger = Some(self.logs.clone());
+        builder
     }
     /// Extract recorded logs (removing them from records).
     pub fn extract_logs(&self) -> RawLogs {

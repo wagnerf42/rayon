@@ -45,7 +45,7 @@ impl<T> Block<T> {
 /// Fast structure (worst case O(1)) for pushing
 /// logs in a thread.
 #[derive(Debug)]
-pub(super) struct Storage<T> {
+pub(crate) struct Storage<T> {
     data: AtomicLinkedList<Block<T>>,
 }
 
@@ -59,7 +59,7 @@ impl<T: 'static> Default for Storage<T> {
 
 impl<T: 'static> Storage<T> {
     /// Create a new storage space.
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let first_block = Block::new();
         let list = AtomicLinkedList::new();
         list.push_front(first_block);

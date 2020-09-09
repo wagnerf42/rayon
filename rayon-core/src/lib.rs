@@ -55,6 +55,7 @@ mod test;
 mod logs;
 
 pub use self::join::{join, join_context};
+use self::logs::Storage;
 pub use self::logs::{
     custom_subgraph, subgraph, Logger, RawEvent, RawLogs, SubGraphId, TaskId, TimeStamp,
 };
@@ -149,6 +150,15 @@ pub struct ThreadPoolBuilder<S = DefaultSpawn> {
     /// "depth-first" fashion. If true, they will do a "breadth-first"
     /// fashion. Depth-first is the default.
     breadth_first: bool,
+
+    /// If we save tasks logs or not and where.
+    tasks_logger: Option<
+        std::sync::Arc<
+            std::sync::Mutex<
+                std::collections::LinkedList<std::sync::Arc<Storage<RawEvent<&'static str>>>>,
+            >,
+        >,
+    >,
 }
 
 /// Contains the rayon thread pool configuration. Use [`ThreadPoolBuilder`] instead.
@@ -185,6 +195,7 @@ impl Default for ThreadPoolBuilder {
             exit_handler: None,
             spawn_handler: DefaultSpawn,
             breadth_first: false,
+            tasks_logger: None,
         }
     }
 }
@@ -368,6 +379,7 @@ impl<S> ThreadPoolBuilder<S> {
             start_handler: self.start_handler,
             exit_handler: self.exit_handler,
             breadth_first: self.breadth_first,
+            tasks_logger: self.tasks_logger,
         }
     }
 
@@ -691,6 +703,7 @@ impl<S> fmt::Debug for ThreadPoolBuilder<S> {
             ref exit_handler,
             spawn_handler: _,
             ref breadth_first,
+            ref tasks_logger,
         } = *self;
 
         // Just print `Some(<closure>)` or `None` to the debug
@@ -713,7 +726,7 @@ impl<S> fmt::Debug for ThreadPoolBuilder<S> {
             .field("stack_size", &stack_size)
             .field("start_handler", &start_handler)
             .field("exit_handler", &exit_handler)
-            .field("breadth_first", &breadth_first)
+            .field("breadth_first", &breadth_first) //TODO: add logger
             .finish()
     }
 }
