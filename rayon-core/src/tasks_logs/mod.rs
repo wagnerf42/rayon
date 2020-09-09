@@ -1,4 +1,7 @@
 //! Most code related to tasks logs is here.
+//! The only other modifications to rayon are :
+//! - for associating thread logs to `Logger` struct (in registry.rs)
+//! - calling logs functions for each operation implying tasks (join, install, spawn, scope,...)
 
 mod common_types;
 pub use common_types::{RawEvent, RawLogs, SubGraphId, TaskId, TimeStamp};
@@ -67,5 +70,6 @@ mod list;
 mod storage;
 pub(super) use storage::Storage;
 
+// define and re-export the main public structure : `Logger`
 pub mod logger;
 pub use logger::Logger;

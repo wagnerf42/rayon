@@ -1,5 +1,5 @@
-//! Main struct for accesses to logs.
-//! Structs, functions and global variables for recording logs.
+//! Main public structure for accesses to logs.
+
 use super::log;
 use super::next_task_id;
 use super::now;

@@ -719,6 +719,17 @@ impl<S> fmt::Debug for ThreadPoolBuilder<S> {
         let start_handler = start_handler.as_ref().map(|_| ClosurePlaceholder);
         let exit_handler = exit_handler.as_ref().map(|_| ClosurePlaceholder);
 
+        struct LoggerHolder(bool);
+        impl fmt::Debug for LoggerHolder {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                if self.0 {
+                    f.write_str("<logging>")
+                } else {
+                    f.write_str("<not logging>")
+                }
+            }
+        }
+
         f.debug_struct("ThreadPoolBuilder")
             .field("num_threads", num_threads)
             .field("get_thread_name", &get_thread_name)
@@ -726,7 +737,8 @@ impl<S> fmt::Debug for ThreadPoolBuilder<S> {
             .field("stack_size", &stack_size)
             .field("start_handler", &start_handler)
             .field("exit_handler", &exit_handler)
-            .field("breadth_first", &breadth_first) //TODO: add logger
+            .field("breadth_first", &breadth_first)
+            .field("tasks_logger", &LoggerHolder(tasks_logger.is_some()))
             .finish()
     }
 }
