@@ -21,6 +21,7 @@ lazy_static = "1"
 crossbeam-channel = "0.4.2"
 crossbeam-deque = "0.7.2"
 crossbeam-utils = "0.7"
+tracing = "0.1.19"
 
 [dev-dependencies]
 rand = "0.7"
