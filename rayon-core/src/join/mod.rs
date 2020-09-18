@@ -119,9 +119,7 @@ where
     RA: Send,
     RB: Send,
 {
-    let dad =
-        tracing::dispatcher::get_default(|subscriber| subscriber.current_span().id().cloned());
-    let join_span = tracing::span!(parent: dad, tracing::Level::TRACE, "parallel");
+    let join_span = tracing::span!(tracing::Level::TRACE, "parallel");
     let _enter = join_span.enter();
     let a_span = tracing::span!(parent: join_span.id(), tracing::Level::TRACE, "task");
     let b_span = tracing::span!(parent: join_span.id(), tracing::Level::TRACE, "task");
