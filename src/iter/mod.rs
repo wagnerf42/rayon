@@ -107,6 +107,7 @@ mod chunks;
 mod cloned;
 mod collect;
 mod copied;
+mod descendants;
 mod empty;
 mod enumerate;
 mod extend;
@@ -153,6 +154,7 @@ pub use self::{
     chunks::Chunks,
     cloned::Cloned,
     copied::Copied,
+    descendants::{descendants, Descendants},
     empty::{empty, Empty},
     enumerate::Enumerate,
     filter::Filter,
