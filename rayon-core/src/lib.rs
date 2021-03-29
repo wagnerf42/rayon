@@ -22,7 +22,7 @@
 #![doc(html_root_url = "https://docs.rs/rayon-core/1.8")]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
-#![deny(unreachable_pub)]
+// #![deny(unreachable_pub)] // TODO: put me back
 #![warn(rust_2018_idioms)]
 
 use std::any::Any;
@@ -37,6 +37,8 @@ use std::str::FromStr;
 mod log;
 #[macro_use]
 mod private;
+#[macro_use]
+mod tasks_logs;
 
 mod job;
 mod join;
@@ -57,6 +59,10 @@ pub use self::registry::ThreadBuilder;
 pub use self::scope::{scope, Scope};
 pub use self::scope::{scope_fifo, ScopeFifo};
 pub use self::spawn::{spawn, spawn_fifo};
+use self::tasks_logs::Storage;
+pub use self::tasks_logs::{
+    custom_subgraph, subgraph, Logger, RawEvent, RawLogs, SubGraphId, TaskId, TimeStamp,
+};
 pub use self::thread_pool::current_thread_has_pending_tasks;
 pub use self::thread_pool::current_thread_index;
 pub use self::thread_pool::ThreadPool;
@@ -144,6 +150,15 @@ pub struct ThreadPoolBuilder<S = DefaultSpawn> {
     /// "depth-first" fashion. If true, they will do a "breadth-first"
     /// fashion. Depth-first is the default.
     breadth_first: bool,
+
+    /// If we save tasks logs or not and where.
+    tasks_logger: Option<
+        std::sync::Arc<
+            std::sync::Mutex<
+                std::collections::LinkedList<std::sync::Arc<Storage<RawEvent<&'static str>>>>,
+            >,
+        >,
+    >,
 }
 
 /// Contains the rayon thread pool configuration. Use [`ThreadPoolBuilder`] instead.
@@ -180,6 +195,7 @@ impl Default for ThreadPoolBuilder {
             exit_handler: None,
             spawn_handler: DefaultSpawn,
             breadth_first: false,
+            tasks_logger: None,
         }
     }
 }
@@ -363,6 +379,7 @@ impl<S> ThreadPoolBuilder<S> {
             start_handler: self.start_handler,
             exit_handler: self.exit_handler,
             breadth_first: self.breadth_first,
+            tasks_logger: self.tasks_logger,
         }
     }
 
@@ -686,6 +703,7 @@ impl<S> fmt::Debug for ThreadPoolBuilder<S> {
             ref exit_handler,
             spawn_handler: _,
             ref breadth_first,
+            ref tasks_logger,
         } = *self;
 
         // Just print `Some(<closure>)` or `None` to the debug
@@ -701,6 +719,17 @@ impl<S> fmt::Debug for ThreadPoolBuilder<S> {
         let start_handler = start_handler.as_ref().map(|_| ClosurePlaceholder);
         let exit_handler = exit_handler.as_ref().map(|_| ClosurePlaceholder);
 
+        struct LoggerHolder(bool);
+        impl fmt::Debug for LoggerHolder {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                if self.0 {
+                    f.write_str("<logging>")
+                } else {
+                    f.write_str("<not logging>")
+                }
+            }
+        }
+
         f.debug_struct("ThreadPoolBuilder")
             .field("num_threads", num_threads)
             .field("get_thread_name", &get_thread_name)
@@ -709,6 +738,7 @@ impl<S> fmt::Debug for ThreadPoolBuilder<S> {
             .field("start_handler", &start_handler)
             .field("exit_handler", &exit_handler)
             .field("breadth_first", &breadth_first)
+            .field("tasks_logger", &LoggerHolder(tasks_logger.is_some()))
             .finish()
     }
 }
