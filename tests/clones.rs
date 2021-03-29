@@ -110,6 +110,8 @@ fn clone_vec() {
 #[test]
 fn clone_adaptors() {
     let v: Vec<_> = (0..1000).map(Some).collect();
+    check(v.par_iter().by_doubling_blocks());
+    check(v.par_iter().by_uniform_blocks(100));
     check(v.par_iter().chain(&v));
     check(v.par_iter().cloned());
     check(v.par_iter().copied());
