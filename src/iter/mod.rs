@@ -179,7 +179,9 @@ pub use self::{
     take::Take,
     try_fold::{TryFold, TryFoldWith},
     update::Update,
-    walk_tree::{walk_tree_postfix, walk_tree_prefix, WalkTreePostfix, WalkTreePrefix},
+    walk_tree::{
+        walk_tree, walk_tree_postfix, walk_tree_prefix, WalkTree, WalkTreePostfix, WalkTreePrefix,
+    },
     while_some::WhileSome,
     zip::Zip,
     zip_eq::ZipEq,
